@@ -65,7 +65,7 @@ async function ensureContainer() {
   // 'blob' access lets anyone read the individual blob URL directly
   // (needed so <img src="..."> works without extra signing). The container
   // listing itself stays private.
-  await containerClient.createIfNotExists({ access: 'blob' });
+  await containerClient.createIfNotExists();
 }
 
 // ---------------------------------------------------------------------------
