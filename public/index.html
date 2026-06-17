@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Vault</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__mark">IV</span>
+      <span class="topbar__name">Image Vault</span>
+    </div>
+    <span class="topbar__tag">Azure App Service · MySQL · Blob Storage</span>
+  </header>
+
+  <main class="layout">
+    <section class="dropzone-card">
+      <div id="dropzone" class="dropzone">
+        <input type="file" id="fileInput" accept="image/*" hidden />
+        <p class="dropzone__title">Drop an image here</p>
+        <p class="dropzone__sub">or click to browse · JPG, PNG, GIF, WebP up to 10MB</p>
+      </div>
+      <div id="status" class="status" role="status"></div>
+    </section>
+
+    <section class="gallery-section">
+      <div class="gallery-header">
+        <h2>Uploaded images</h2>
+        <button id="refreshBtn" class="btn-ghost">Refresh</button>
+      </div>
+      <div id="gallery" class="gallery"></div>
+      <p id="emptyState" class="empty-state" hidden>No images yet. Upload the first one above.</p>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

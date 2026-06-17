@@ -1,0 +1,21 @@
+{
+  "name": "azure-image-upload-app",
+  "version": "1.0.0",
+  "description": "Image upload web app for Azure: App Service + Azure Database for MySQL + Blob Storage",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.0.0",
+    "mysql2": "^3.10.0",
+    "@azure/storage-blob": "^12.24.0",
+    "dotenv": "^16.4.5",
+    "uuid": "^9.0.1"
+  }
+}
