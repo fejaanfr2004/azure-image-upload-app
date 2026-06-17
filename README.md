@@ -1,117 +1,155 @@
-# Image Vault — Azure Image Upload App
+# Azure Image Gallery
 
-A small Node.js/Express app for uploading images to **Azure Blob Storage**, with
-metadata tracked in **Azure Database for MySQL**, deployed to **Azure App
-Service**.
+A cloud-based image upload and management application built using Node.js, Express.js, Azure Blob Storage, Azure App Service, and Azure Database for MySQL.
+
+## Project Overview
+
+Azure Image Gallery allows users to upload image files through a web interface. Uploaded images are stored securely in Azure Blob Storage, while image metadata is stored in Azure Database for MySQL. The application is deployed and hosted on Azure App Service.
+
+## Features
+
+* Upload image files through a web browser
+* Store images in Azure Blob Storage
+* Save image metadata in MySQL Database
+* Retrieve uploaded image information using REST APIs
+* Delete images from storage and database
+* Health check endpoint for monitoring
+* Cloud deployment on Azure App Service
+
+## Technology Stack
+
+### Frontend
+
+* HTML5
+* CSS3
+* JavaScript
+
+### Backend
+
+* Node.js
+* Express.js
+* Multer
+
+### Cloud Services
+
+* Azure App Service
+* Azure Blob Storage
+* Azure Database for MySQL Flexible Server
+
+### Database
+
+* MySQL
+
+## Project Architecture
+
+User → Web Application → Azure Blob Storage
 
 ```
-public/        Frontend (drag-and-drop upload + gallery)
-server.js      Express API: /upload, /images, /images/:id, /health
-db/schema.sql  MySQL table definition
-.env.example   Required environment variables
+                  ↓
+
+         Azure MySQL Database
 ```
 
-## 1. Run it locally
+### Workflow
 
-```bash
-npm install
-cp .env.example .env   # then fill in real values
-npm start               # http://localhost:8080
+1. User uploads an image.
+2. The application validates the file.
+3. Image is uploaded to Azure Blob Storage.
+4. Image metadata is stored in MySQL.
+5. Users can retrieve image information through APIs.
+
+## API Endpoints
+
+### Upload Image
+
+```http
+POST /upload
 ```
 
-## 2. Create the Azure resources
+Uploads an image and stores metadata.
 
-These commands assume the [Azure CLI](https://learn.microsoft.com/cli/azure/)
-is installed and you've run `az login`. Replace the placeholder names.
+### Get All Images
 
-```bash
-RG=image-vault-rg
-LOCATION=eastus
-
-az group create -n $RG -l $LOCATION
-
-# --- Storage account + container -------------------------------------------------
-az storage account create -n imagevaultstorage -g $RG -l $LOCATION --sku Standard_LRS
-az storage container create -n images \
-  --account-name imagevaultstorage --public-access blob
-
-# Grab the connection string for AZURE_STORAGE_CONNECTION_STRING
-az storage account show-connection-string -n imagevaultstorage -g $RG
-
-# --- Azure Database for MySQL Flexible Server -------------------------------------
-az mysql flexible-server create -g $RG -n imagevault-mysql \
-  --location $LOCATION --admin-user mysqladmin --admin-password "<strong-password>" \
-  --sku-name Standard_B1ms --tier Burstable --version 8.0 \
-  --public-access 0.0.0.0   # allow Azure services; tighten this in production
-
-# Load the schema
-mysql -h imagevault-mysql.mysql.database.azure.com -u mysqladmin -p \
-  < db/schema.sql
-
-# --- App Service plan + Web App -----------------------------------------------
-az appservice plan create -n image-vault-plan -g $RG --sku B1 --is-linux
-
-az webapp create -n image-vault-app -g $RG --plan image-vault-plan \
-  --runtime "NODE:20-lts"
-
-# App settings (these become process.env in server.js)
-az webapp config appsettings set -n image-vault-app -g $RG --settings \
-  DB_HOST="imagevault-mysql.mysql.database.azure.com" \
-  DB_USER="mysqladmin" \
-  DB_PASSWORD="<strong-password>" \
-  DB_NAME="imagedb" \
-  AZURE_STORAGE_CONNECTION_STRING="<connection-string-from-above>" \
-  AZURE_STORAGE_CONTAINER="images" \
-  WEBSITE_RUN_FROM_PACKAGE="1"
-
-# Deploy the code (zip deploy)
-zip -r app.zip . -x "node_modules/*" ".git/*"
-az webapp deploy -n image-vault-app -g $RG --src-path app.zip --type zip
+```http
+GET /images
 ```
 
-Open `https://image-vault-app.azurewebsites.net` once deployment finishes.
+Returns a list of uploaded images.
 
-## 3. Load balancing
+### Delete Image
 
-App Service already load-balances for you — this is the part most setups get
-wrong by trying to bolt on an extra Load Balancer resource that isn't needed:
+```http
+DELETE /images/:id
+```
 
-- **Default behavior:** every App Service Plan runs behind Azure's internal
-  load balancer automatically. Scale the plan to more than one instance and
-  traffic is distributed across them with no config required:
+Deletes an image from Blob Storage and MySQL.
 
-  ```bash
-  az appservice plan update -n image-vault-plan -g $RG --number-of-workers 3
-  # or enable autoscale rules on CPU/memory via az monitor autoscale
-  ```
+### Health Check
 
-  Point the health probe at `/health` (Azure Monitor → App Service →
-  Diagnose and solve problems → Health check, or `az webapp config set
-  --health-check-path /health`) so unhealthy instances get pulled out of
-  rotation automatically.
+```http
+GET /health
+```
 
-- **If you specifically need a standalone Azure Load Balancer (Layer 4)**
-  in front of compute — this is the typical pattern for VMs/VM Scale Sets,
-  not for PaaS App Service. App Service only sits behind one if it's deployed
-  into an **App Service Environment (ASE)** with an internal load balancer,
-  which is an isolated/dedicated-capacity tier mainly used for strict network
-  compliance requirements. Most teams don't need this for a standard web app.
+Checks application and database connectivity.
 
-- **If the goal is multi-region failover, a WAF, or path-based routing,**
-  reach for **Azure Front Door** or **Application Gateway** in front of the
-  App Service instead — they understand HTTP/HTTPS (Layer 7), unlike Azure
-  Load Balancer, which makes them the right tool for a web app like this one.
+## Azure Resources Used
 
-## 4. Notes on the code
+* Azure App Service
+* Azure Blob Storage
+* Azure Database for MySQL Flexible Server
+* Azure Resource Group
 
-- Uploaded files are streamed straight from memory to Blob Storage — never
-  written to local disk — since App Service instances are stateless and can
-  be recycled or load-balanced across at any time.
-- MySQL connects over TLS (`ssl: { rejectUnauthorized: true }`), which Azure
-  Database for MySQL requires by default.
-- The container is created with `access: 'blob'` so individual image URLs
-  are publicly readable (needed for `<img src="...">`), while the container
-  listing itself stays private. For private images instead, switch to SAS
-  tokens generated per-request.
-- `/health` checks the DB connection, not just that the process is alive —
-  point both App Service's health check and any external probe at it.
+## Screenshots
+
+### Application Homepage
+
+<img width="1918" height="972" alt="Screenshot 2026-06-17 194544" src="https://github.com/user-attachments/assets/8bdd2fb7-ec08-4ac2-87df-99e1f05780c8" />
+
+
+### Azure Blob Storage Container
+
+<img width="1918" height="978" alt="Screenshot 2026-06-17 194602" src="https://github.com/user-attachments/assets/2ed5cf8a-5314-408a-a20c-cf62d26f2ef1" />
+
+
+### MySQL Database Records
+
+<img width="1917" height="766" alt="Screenshot 2026-06-17 194814" src="https://github.com/user-attachments/assets/97dc6b69-b2b7-4ee2-9bd2-e6df9ee3fc7a" />
+
+
+### Azure App Service
+
+<img width="1912" height="973" alt="Screenshot 2026-06-17 194708" src="https://github.com/user-attachments/assets/7dcfe3ec-f9cb-4ed1-98d6-966e98e578a5" />
+
+
+## Learning Outcomes
+
+This project helped in understanding:
+
+* Cloud Application Deployment
+* Azure App Service Configuration
+* Azure Blob Storage Integration
+* Azure Database for MySQL Integration
+* REST API Development
+* File Upload Handling with Node.js
+* Cloud-Based Application Architecture
+
+## Future Enhancements
+
+* User Authentication
+* Image Preview Gallery
+* Search and Filter Images
+* Image Categories
+* Role-Based Access Control
+* Image Compression and Optimization
+
+## Author
+
+**Fejaan Rathore**
+
+Aspiring Cloud Engineer | Azure Enthusiast | Full Stack Developer
+
+GitHub: https://github.com/fejaanfr2004
+
+
+
+This project is developed for learning and educational purposes.
